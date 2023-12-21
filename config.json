@@ -1,0 +1,8 @@
+{
+    "app_server_port": "8082",
+    "keycloak_url":"http://localhost:8080",
+    "keycloak_client_id":"BSE",
+    "keycloak_client_secret":"mnfgZZzyZMVjNbBqMDP6N4cLNExDX1Nk",
+    "provider_url": "http://localhost:8080/realms/remiges-tech",
+    "realm": "remiges-tech"
+  }
