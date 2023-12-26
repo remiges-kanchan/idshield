@@ -112,7 +112,7 @@ func main() {
 	userService := service.NewService(r).WithLogHarbour(lh).WithDependency("goclock", client).WithDependency("realm", appConfig.Realm)
 
 	// Register a route for handling group creation requests
-	userService.RegisterRoute(http.MethodPost, "/capability-create", groupservice.HandleCapabilityCreateRequest)
+	userService.RegisterRoute(http.MethodPost, "/group", groupservice.HandleGroupCreationRequest)
 
 	// Start the service
 	if err := r.Run(":" + appConfig.AppServerPort); err != nil {

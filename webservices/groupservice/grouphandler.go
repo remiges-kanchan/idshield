@@ -14,14 +14,14 @@ import (
 	"github.com/remiges-tech/logharbour/logharbour"
 )
 
-// createCapabilityRequest represents the structure for incoming capability creation requests.
-type CreateCapabilityRequest struct {
+// CreateGroupRequest represents the structure for incoming group creation requests.
+type CreateGroupRequest struct {
 	Name       *string              `json:"name" validate:"required"`
 	Attributes *map[string][]string `json:"attributes,omitempty"`
 }
 
-// createCapabilityResponse represents the structure for outgoing capability creation responses.
-type CreateCapabilityResponse struct {
+// CreateGroupResponse represents the structure for outgoing group creation responses.
+type CreateGroupResponse struct {
 	ID         string               `json:"id"`
 	Name       string               `json:"name"`
 	Path       *string              `json:"path"`
@@ -33,10 +33,10 @@ type Capabilities struct {
 	Capability []string `json:"capability"`
 }
 
-// HandleCapabilityCreateRequest is a Handler  function for creating capability in keyclock
-func HandleCapabilityCreateRequest(c *gin.Context, s *service.Service) {
+// HandleGroupCreationRequest is a Handler  function for creating group in keyclock
+func HandleGroupCreationRequest(c *gin.Context, s *service.Service) {
 	lh := s.LogHarbour
-	lh.Log("create Capability request received")
+	lh.Log("create Group request received")
 
 	token, err := router.ExtractToken(c.GetHeader("Authorization"))
 	if err != nil {
@@ -62,20 +62,20 @@ func HandleCapabilityCreateRequest(c *gin.Context, s *service.Service) {
 	// 	return
 	// }
 
-	// Unmarshal JSON request into CreateCapabilityRequest struct
-	var createCapabilityReq CreateCapabilityRequest
+	// Unmarshal JSON request into CreateGroupRequest struct
+	var createGroupReq CreateGroupRequest
 
-	if err := wscutils.BindJSON(c, &createCapabilityReq); err != nil {
+	if err := wscutils.BindJSON(c, &createGroupReq); err != nil {
 		// Log and respond to JSON Unmarshalling error
 		lh.LogActivity("Error Unmarshalling JSON to struct:", logharbour.DebugInfo{Variables: map[string]interface{}{"Error": err.Error()}})
 		wscutils.SendErrorResponse(c, wscutils.NewErrorResponse("invalid_json"))
 		return
 	}
 
-	lh.LogActivity("create capability request parsed", map[string]any{"group": createCapabilityReq.Name})
+	lh.LogActivity("create group request parsed", map[string]any{"group": createGroupReq.Name})
 
-	//Validate  create cpability request
-	validationErrors := validateCreateCapability(createCapabilityReq, c)
+	//Validate incoming request
+	validationErrors := validateCreateGroup(createGroupReq, c)
 	if len(validationErrors) > 0 {
 
 		// Log and respond to validation errors
@@ -95,16 +95,16 @@ func HandleCapabilityCreateRequest(c *gin.Context, s *service.Service) {
 
 	// Create a new goclock group
 	group := gocloak.Group{
-		Name:       createCapabilityReq.Name,
-		Attributes: createCapabilityReq.Attributes,
+		Name:       createGroupReq.Name,
+		Attributes: createGroupReq.Attributes,
 	}
 
-	// Create capability
-	capabilityCreationID, err := client.CreateGroup(ctx, token, realm, group)
+	// Create a group
+	groupCreationID, err := client.CreateGroup(ctx, token, realm, group)
 	if err != nil {
-		lh.LogActivity("Error while creating capability:", logharbour.DebugInfo{Variables: map[string]interface{}{"error": err}})
+		lh.LogActivity("Error while creating Group:", logharbour.DebugInfo{Variables: map[string]interface{}{"error": err}})
 
-		conflictErr := fmt.Sprintf("409 Conflict: Top level group named '%s' already exists.", *createCapabilityReq.Name)
+		conflictErr := fmt.Sprintf("409 Conflict: Top level group named '%s' already exists.", *createGroupReq.Name)
 
 		switch err.Error() {
 		case "401 Unauthorized: HTTP 401 Unauthorized":
@@ -123,28 +123,27 @@ func HandleCapabilityCreateRequest(c *gin.Context, s *service.Service) {
 	}
 
 	// Get a Group Info by using Group ID
-	groupInfo, err := client.GetGroup(ctx, token, realm, capabilityCreationID)
+	groupInfo, err := client.GetGroup(ctx, token, realm, groupCreationID)
 	if err != nil {
-		fmt.Print(err)
 		return
 	}
 
 	// Create response struct
-	CreateCapabilityResponse := CreateCapabilityResponse{
+	CreateGroupResponse := CreateGroupResponse{
 		ID:         *groupInfo.ID,
 		Name:       *groupInfo.Name,
 		Path:       groupInfo.Path,
 		Attributes: groupInfo.Attributes,
 	}
 	// Send success response
-	wscutils.SendSuccessResponse(c, &wscutils.Response{Data: CreateCapabilityResponse})
+	wscutils.SendSuccessResponse(c, &wscutils.Response{Status: "success", Data: CreateGroupResponse})
 
 	// Log the completion of execution
-	lh.LogActivity("Finished execution of createCapability", map[string]string{"Timestamp": time.Now().Format("2006-01-02 15:04:05")})
+	lh.LogActivity("Finished execution of createGroup", map[string]string{"Timestamp": time.Now().Format("2006-01-02 15:04:05")})
 }
 
 // Validate validates the request body
-func validateCreateCapability(req CreateCapabilityRequest, c *gin.Context) []wscutils.ErrorMessage {
+func validateCreateGroup(req CreateGroupRequest, c *gin.Context) []wscutils.ErrorMessage {
 	// validate request body using standard validator
 	validationErrors := wscutils.WscValidate(req, req.getValsForCreateCapabilityError)
 
@@ -156,13 +155,13 @@ func validateCreateCapability(req CreateCapabilityRequest, c *gin.Context) []wsc
 }
 
 // getValsForUserError returns a slice of strings to be used as vals for a validation error.
-func (req *CreateCapabilityRequest) getValsForCreateCapabilityError(err validator.FieldError) []string {
+func (req *CreateGroupRequest) getValsForCreateCapabilityError(err validator.FieldError) []string {
 	var vals []string
 	switch err.Field() {
 	case "name":
 		switch err.Tag() {
 		case "required":
-			vals = append(vals, "Capability name is required")
+			vals = append(vals, "group name is required")
 			vals = append(vals, *req.Name)
 		}
 
